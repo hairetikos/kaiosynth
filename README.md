@@ -2,10 +2,13 @@
 
 Experimental browser-based bass synthesizer for intense chaotic neuro sound design.
 
+features .SCL microtuning preset support with some built-in scales.
+
 ## Core Features
 - 4 FM operators with dynamic modulation routing (editable UI)
 - Per-operator ADSR amplitude envelopes + modulation scaling (envelope influence on outgoing FM depth)
 - Unison, glide placeholder, transient tick
+- .SCL microtuning preset support with some built-in scales.
 - Multi-stage distortion (fold / diode / hybrid) + optional oversampled drive core
 - Bitcrush & pseudo downsample
 - Dual filter + comb/notch hybrid
@@ -28,7 +31,7 @@ Experimental browser-based bass synthesizer for intense chaotic neuro sound desi
     - Channel Pressure → Macro3 (Morph)
   - MIDI Learn mode for macros (click “Learn” then move a CC)
 
-## NEW: Mod Routing Editor
+## Mod Routing Editor
 - Add modulation paths: pick Source Operator → Destination Operator; set depth
 - Remove paths with one click
 - Normalize Depths utility rescales all mod depths to a selected max
