@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Kaiosynth</title>
+<meta name="viewport" content="width=device-width,initial-scale=1.0" />
+<style>
+  body { background:#0d0f17; color:#ddd; font:14px/1.4 system-ui,Arial,sans-serif; margin:0; }
+  h1 { font-size:18px; letter-spacing:1px; margin:6px 0 10px; }
+  h3 { margin-top:0; }
+  .panel { background:#161a25; padding:12px; margin:8px; border:1px solid #272c3c; border-radius:6px; }
+  .flex { display:flex; flex-wrap:wrap; }
+  .col { flex:1 1 320px; min-width:280px; }
+  label { display:block; margin:4px 0 2px; font-size:11px; text-transform:uppercase; opacity:.75; }
+  input[type=range] { width:100%; }
+  button { background:#243044; color:#fff; border:1px solid #394a68; padding:6px 10px; margin:4px 2px; border-radius:4px; cursor:pointer; font-size:12px; }
+  button:hover { background:#31415a; }
+  select, textarea, input[type=number] { background:#243044; color:#fff; border:1px solid #394a68; padding:4px; border-radius:4px; font-size:12px; }
+  .macro { background:#1f2533; padding:6px; border-radius:4px; margin-bottom:6px; position:relative; }
+  .macro .learn-btn { position:absolute; top:4px; right:4px; font-size:10px; padding:2px 6px; }
+  .seq-grid { display:grid; grid-template-columns:repeat(16, 1fr); gap:2px; }
+  .seq-cell { width:100%; aspect-ratio:1/1; background:#222b3b; cursor:pointer; position:relative; }
+  .seq-cell.active { background:#4a7bd1; }
+  .small { font-size:11px; opacity:.8; }
+  .env-op { background:#1e2533; padding:6px; border-radius:4px; margin-bottom:8px; }
+  .tag { background:#31415a; padding:2px 6px; border-radius:4px; font-size:10px; letter-spacing:0.5px; }
+  #virtualKeyboard { margin:8px; background:#101721; padding:4px; border:1px solid #253140; border-radius:6px; overflow:hidden; }
+  .vk-key.vk-ext-active { box-shadow:0 0 6px #55aaff inset; }
+  #noteSeqTable { width:100%; border-collapse:collapse; font-size:11px; }
+  #noteSeqTable th, #noteSeqTable td { padding:4px 4px; border-bottom:1px solid #273040; }
+  #noteSeqTable th { background:#1f2633; }
+  .danger { background:#612b2b !important; border-color:#814040 !important; }
+  .danger:hover { background:#7b3a3a !important; }
+  .learn-active { outline:2px solid #ffcc33; }
+  .nowrap { white-space:nowrap; }
+  .tight { margin:0; padding:0; }
+</style>
+</head>
+<body>
+  <div id="virtualKeyboard"></div>
+
+  <div class="panel">
+    <h1>Kaiosynth</h1>
+    <div class="row" style="display:flex; flex-wrap:wrap; gap:4px;">
+      <button id="initBtn">Init Audio</button>
+      <button id="noteOnBtn">Note On</button>
+      <button id="noteOffBtn">Note Off</button>
+      <button id="noteRandom">Rand Note</button>
+      <button id="panic">Panic</button>
+      <button id="rndSafe">Random (Safe)</button>
+      <button id="rndWild">Random (Wild)</button>
+      <button id="rndAll">Random ALL</button>
+      <button id="stutter">Stutter</button>
+    </div>
+    <label class="small"><input type="checkbox" id="oversampleToggle" /> Oversample Dist (4×)</label>
+  </div>
+
+  <div class="panel">
+    <h3>Microtuning / Scala</h3>
+    <div style="display:flex; gap:6px; flex-wrap:wrap;">
+      <select id="sclPreset"></select>
+      <input type="file" id="sclFile" accept=".scl" />
+      <select id="tuningRoot"></select>
+      <button id="tuningReset">Reset 12-TET</button>
+    </div>
+    <p id="tuningInfo" class="small"></p>
+  </div>
+
+  <div class="panel">
+    <h3>Presets</h3>
+    <select id="presetSelect"></select>
+    <div class="row" style="display:flex;flex-wrap:wrap;">
+      <button id="presetLoad">Load</button>
+      <button id="presetSaveAs">Save As</button>
+      <button id="presetDelete">Delete</button>
+      <button id="presetExport">Export</button>
+      <button id="presetImportToggle">Import...</button>
+    </div>
+    <div id="importArea" style="display:none; margin-top:8px;">
+      <textarea id="presetImportText" placeholder="Paste preset JSON here" style="width:100%; min-height:120px;"></textarea>
+      <div class="row">
+        <button id="presetImportLoad">Load From Text</button>
+        <button id="presetImportSave">Load & Save</button>
+        <button id="presetImportCancel">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="flex">
+    <div class="panel col" id="macros">
+      <h3>Macros</h3>
+      <div class="macro" data-macro-box="0">
+        <label>Macro 1 (Motion)</label>
+        <input type="range" min="0" max="1" step="0.001" data-macro="0" value="0.3" />
+        <button class="learn-btn" data-learn="0">Learn</button>
+      </div>
+      <div class="macro" data-macro-box="1">
+        <label>Macro 2 (Drive)</label>
+        <input type="range" min="0" max="1" step="0.001" data-macro="1" value="0.5" />
+        <button class="learn-btn" data-learn="1">Learn</button>
+      </div>
+      <div class="macro" data-macro-box="2">
+        <label>Macro 3 (Morph)</label>
+        <input type="range" min="0" max="1" step="0.001" data-macro="2" value="0.2" />
+        <button class="learn-btn" data-learn="2">Learn</button>
+      </div>
+      <div class="macro" data-macro-box="3">
+        <label>Macro 4 (Notch Sweep)</label>
+        <input type="range" min="0" max="1" step="0.001" data-macro="3" value="0.4" />
+        <button class="learn-btn" data-learn="3">Learn</button>
+      </div>
+      <h3>Chaos & Expression</h3>
+      <label>Chaos Rate</label>
+      <input type="range" id="chaosRate" min="0.2" max="15" step="0.01" value="3.5" />
+      <label>Chaos Amount</label>
+      <input type="range" id="chaosAmount" min="0" max="1" step="0.001" value="0.3" />
+      <label><input type="checkbox" id="chaosFilter" checked /> Chaos→Filter</label>
+      <label><input type="checkbox" id="chaosDrive" checked /> Chaos→Drive</label>
+      <label><input type="checkbox" id="chaosMod" /> Chaos→FM Depth</label>
+      <label>Spikes Enable <input type="checkbox" id="spikesEnable" checked /></label>
+      <label>Spike Probability</label>
+      <input type="range" id="spikeProb" min="0" max="0.5" step="0.001" value="0.18" />
+      <label>Spike Boost</label>
+      <input type="range" id="spikeBoost" min="1" max="3" step="0.01" value="1.6" />
+      <label>Velocity Mode</label>
+      <select id="velocityMode">
+        <option value="fixed">Fixed 100</option>
+        <option value="random" selected>Random 60-127</option>
+        <option value="accent">Alternating Accent</option>
+      </select>
+    </div>
+
+    <div class="panel col">
+      <h3>Core Params</h3>
+      <label>Base Frequency</label>
+      <input type="range" id="baseFreq" min="20" max="200" value="55" step="0.01" />
+      <label>Unison Voices</label>
+      <input type="range" id="unisonVoices" min="1" max="6" value="3" step="1" />
+      <label>Unison Detune</label>
+      <input type="range" id="unisonDetune" min="0" max="100" value="25" />
+      <label>Glide (ms)</label>
+      <input type="range" id="glide" min="0" max="500" value="40" />
+      <label>Global Out Gain</label>
+      <input type="range" id="outGain" min="0" max="1.2" step="0.001" value="0.6" />
+    </div>
+
+    <div class="panel col">
+      <h3>Filters / Distortion</h3>
+      <label>Filter Cut (Hz)</label>
+      <input type="range" id="filterCut" min="50" max="12000" value="3200" />
+      <label>Filter Res</label>
+      <input type="range" id="filterRes" min="0.1" max="1" value="0.35" step="0.001" />
+      <label>Comb Depth</label>
+      <input type="range" id="combDepth" min="0" max="1" value="0.35" step="0.001" />
+      <label>Dist Drive</label>
+      <input type="range" id="distDrive" min="0" max="2.5" step="0.001" value="1.1" />
+      <label>Fold Amount</label>
+      <input type="range" id="foldAmt" min="0" max="1.5" step="0.001" value="0.5" />
+      <label>Bitcrush (bits)</label>
+      <input type="range" id="bitDepth" min="4" max="16" value="10" />
+      <label>Downsample Factor</label>
+      <input type="range" id="downsample" min="1" max="16" value="3" />
+    </div>
+
+    <div class="panel col">
+      <h3>Macro Accent Lane</h3>
+      <div class="seq-grid" id="seqGrid"></div>
+      <label>BPM</label>
+      <input type="range" id="bpm" min="60" max="190" value="172" />
+      <label>Seq Enable <input type="checkbox" id="seqEnable" checked /></label>
+    </div>
+  </div>
+
+  <div class="panel">
+    <h3>Note Step Sequencer <span class="tag">16 Steps</span></h3>
+    <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
+      <button id="noteSeqPlay">Play</button>
+      <button id="noteSeqStop">Stop</button>
+      <span class="small">Uses global BPM 16th division</span>
+    </div>
+    <table id="noteSeqTable">
+      <thead>
+        <tr>
+          <th>#</th><th>On</th><th>Note</th><th>Vel</th><th>Gate%</th>
+        </tr>
+      </thead>
+      <tbody id="noteSeqBody"></tbody>
+    </table>
+  </div>
+
+  <div class="panel">
+    <h3>Operator Envelopes <span class="tag">ADSR + ModScale</span></h3>
+    <div id="envContainer"></div>
+  </div>
+
+  <div class="panel">
+    <h3>FM Mod Routing Editor <span class="tag">Dynamic</span></h3>
+    <div style="display:flex; gap:6px; flex-wrap:wrap; align-items:center;">
+      <select id="addSource"></select>
+      <span style="align-self:center;">→</span>
+      <select id="addDest"></select>
+      <input type="number" id="addDepth" value="150" step="1" style="width:80px;" />
+      <button id="addRouteBtn">Add Route</button>
+      <button id="normalizeRoutesBtn">Normalize Depths</button>
+    </div>
+    <table id="modRoutesTable" style="width:100%; border-collapse:collapse; margin-top:8px;">
+      <thead>
+        <tr><th>Source</th><th>Dest</th><th>Depth</th><th>Actions</th></tr>
+      </thead>
+      <tbody id="modRoutesBody"></tbody>
+    </table>
+  </div>
+
+  <div class="panel">
+    <h3>MIDI <span class="tag">Beta</span></h3>
+    <div style="display:flex; gap:6px; flex-wrap:wrap;">
+      <button id="enableMIDI">Enable MIDI</button>
+      <label style="flex:1;">Input
+        <select id="midiInputSelect"></select>
+      </label>
+      <label style="width:120px;">Channel
+        <select id="midiChannelSelect">
+          <option value="-1">Omni</option>
+          <option value="0">1</option><option value="1">2</option><option value="2">3</option>
+          <option value="3">4</option><option value="4">5</option><option value="5">6</option>
+          <option value="6">7</option><option value="7">8</option><option value="8">9</option>
+          <option value="9">10</option><option value="10">11</option><option value="11">12</option>
+          <option value="12">13</option><option value="13">14</option><option value="14">15</option>
+          <option value="15">16</option>
+        </select>
+      </label>
+      <label style="flex:1;">Bend Range
+        <input type="range" id="bendRange" min="1" max="24" value="2" />
+      </label>
+    </div>
+    <p class="small">Default CC: 1→Macro1, 2→Macro2, 74→FilterCut, 7→OutGain, Aftertouch→Macro3 (Morph). Use Learn per macro to rebind.</p>
+  </div>
+
+  <script type="module" src="./presets.js"></script>
+  <script type="module" src="./dsp/envelope.js"></script>
+  <script type="module" src="./dsp/modulators.js"></script>
+  <script type="module" src="./dsp/fmGraph.js"></script>
+  <script type="module" src="./sclPresets.js"></script>
+  <script type="module" src="./sclParser.js"></script>
+  <script type="module" src="./virtualKeyboard.js"></script>
+  <script type="module" src="./noteSequencer.js"></script>
+  <script type="module" src="./midi.js"></script>
+  <script type="module" src="./synth.js"></script>
+</body>
+</html>

@@ -1,0 +1,13 @@
+{
+  "name": "kaiosynth",
+  "version": "0.2.0",
+  "private": true,
+  "description": "neuro chaos synth (Web Audio + MIDI + dynamic FM routing).",
+  "scripts": {
+    "serve": "http-server -c-1 -p 8080 .",
+    "dev": "http-server -c-1 -p 5173 ."
+  },
+  "devDependencies": {
+    "http-server": "^14.1.1"
+  }
+}
